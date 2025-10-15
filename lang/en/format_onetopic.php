@@ -19,7 +19,7 @@
  *
  * @since 2.4
  * @package format_onetopic
- * @copyright 2012 David Herney Bernal - cirano
+ * @copyright 2012 David Herney - cirano
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -27,9 +27,26 @@ $string['aboutresource'] = 'About the resource';
 $string['asbrother'] = 'Same level that the previous tab';
 $string['aschild'] = 'Child of previous tab';
 $string['asprincipal'] = 'Normal, as a first level tab';
+$string['backgroundpickerinvalid'] = 'Invalid background value';
 $string['bgcolor'] = 'Background color';
 $string['bgcolor_help'] = 'Used to change the tab background color. The value can be a color in a CSS valid representation, for example: <ul><li>Hexadecimal: #ffffff</li><li>RGB: rgb(0,255,0)</li><li>Name: green</li></ul>';
 $string['cantcreatesection'] = 'Error creating a new topic';
+$string['cli_help'] = 'Execute cli actions.
+Options:
+-h,  --help             Print out this help
+-ms, --mstyles=X        Executes a migration action. X can be: list, migrate, or all.
+                        If X is not specified, the "list" option is used.
+                        If X is "migrate", it will migrate the styles that can be migrated.
+                        If X is "list", it will list the sections with styles to be migrated.
+-msl, --mslimit=100     Limit the number of records to be displayed on screen or migrated. Default is 100.
+                        Be careful with the limit. If you set a value that includes some styles but excludes others from a section,
+                        only the included styles will be migrated.
+Example:
+\$sudo -u www-data /usr/bin/php cli.php -ms=list -msl=50
+';
+$string['cli_migratestylesend'] = 'Styles migration completed successfully.';
+$string['cli_migratestylesstart'] = 'Starting styles migration...';
+$string['cli_migratestylesstarttitle'] = 'Styles migration...';
 $string['colorpicker'] = 'Color picker';
 $string['colorpicker_help'] = '';
 $string['coursedisplay'] = 'Visualization mode of section 0';
@@ -77,15 +94,6 @@ $string['defaultscope'] = 'Default scope';
 $string['defaultscope_help'] = 'Default scope used to define the pages on which the tab menu is printed. The SCORM Player scope require the Modules scope.';
 $string['defaultsectionsnavigation'] = 'Default value to sections navigation';
 $string['defaultsectionsnavigation_help'] = 'Default value used in courses to define the "Uses sections navigation" feature. This can be overwrite for each course.';
-$string['disable'] = 'Disable';
-$string['disableajax'] = 'Asynchronous edit actions';
-$string['disableajax_help'] = 'Use this action in order to move resources between topic tabs. It only disables the asynchronous actions in current session, it is not permanently.';
-$string['duplicate'] = 'Duplicate';
-$string['duplicate_confirm'] = 'Are you sure you want to duplicate the current topic? The task can take a while depending on the amount of resources.';
-$string['duplicatesection'] = 'Duplicate current topic';
-$string['duplicatesection_help'] = 'Used to duplicate the resources of current topic in a new topic';
-$string['duplicating'] = 'Duplicating';
-$string['enable'] = 'Enable';
 $string['enableanchorposition'] = 'Enable anchor position';
 $string['enableanchorposition_help'] = 'Use an anchor to navigate to the top of tabs when click in a tab.';
 $string['enablecustomstyles'] = 'Enable custom styles';
@@ -106,16 +114,25 @@ $string['index'] = 'Index';
 $string['invalidjsonstyles'] = 'Styles configuration is not valid, fails with: {$a}';
 $string['level'] = 'Level';
 $string['level_help'] = 'Change the tab level.';
+$string['migratecssstyles'] = 'Styles';
+$string['migratestyles'] = 'Migrate styles';
+$string['migratestylesaction'] = 'Migrate styles';
+$string['migratestylesall'] = 'Show all sections';
+$string['migratestylesconfirm'] = 'Are you sure you want to migrate the styles? This action will migrate the styles from the old format to the new one, and it cannot be undone. Old styles will also be kept for compatibility.';
+$string['migratestylesdone'] = 'Styles migration completed successfully.';
+$string['migratestyleslimit'] = 'The number of records to be displayed on screen has been exceeded. Only the first {$a} records are displayed.';
+$string['migratestylesnothing'] = 'There are no styles to migrate.';
+$string['migratestylesonlytochange'] = 'Show only the sections that are pending migration';
+$string['migratewillbemigrated'] = 'Will be migrated';
+$string['migrationpagehelp'] = 'You can use the following page to review which styles exist in the old control: <a href="{$a}" target="_blank">Migration</a>. You can also use the automatic migration feature if there are styles that can be migrated. Styles cannot be migrated if the new property already exists in the database.';
 $string['movesectionto'] = 'Move current topic';
 $string['movesectionto_help'] = 'Move current topic to left/right of selected topic';
+$string['nomigratestyles'] = 'There are no styles to migrate.';
 $string['page-course-view-topics'] = 'Any course main page in onetopic format';
 $string['page-course-view-topics-x'] = 'Any course page in onetopic format';
 $string['plugin_description'] = 'Course sections are displayed separately in tabs.';
 $string['pluginname'] = 'Onetopic format';
 $string['privacy:metadata'] = 'The Onetopic format plugin does not store any personal data.';
-$string['progress_counter'] = 'Duplicating activities ({$a->current}/{$a->size})';
-$string['progress_full'] = 'Duplicating topic';
-$string['rebuild_course_cache'] = 'Rebuild course cache';
 $string['scope_mod'] = 'Modules';
 $string['scope_scorm'] = 'SCORM Player';
 $string['sectionname'] = 'Topic';
@@ -125,20 +142,32 @@ $string['sectionsnavigation_not'] = 'Not use';
 $string['sectionsnavigation_sitelevel'] = 'Use the default site value';
 $string['sectionsnavigation_slides'] = 'Like slides';
 $string['sectionsnavigation_support'] = 'Only if theme not support the "uses course index" feature';
-$string['settingsheaderstyles'] = 'Styles';
+$string['selectcolor'] = 'Select color';
+$string['setcolor'] = 'Set color';
+$string['settingsheaderdefault'] = 'Default course settings';
+$string['settingsheaderstyles'] = 'Default tabs styles';
 $string['showfromothers'] = 'Show topic';
 $string['showtab1'] = 'Show default tab content when section 0 is before the tabs';
 $string['showtab1_help'] = 'Only when page is called initially by a user show content of either a highligted tab or tab 1 when section 0 is shown before the tabs.';
 $string['subtopictoright'] = 'Move to right as subtopic';
+$string['tabicon'] = 'Icon';
+$string['tabiconremove'] = 'Remove icon';
+$string['tabiconselect'] = 'Select icon';
 $string['tablabelactive'] = 'Active tab';
 $string['tablabeldefault'] = 'Default tab {$a}';
 $string['tablabeldisabled'] = 'Disabled';
 $string['tablabelhighlighted'] = 'Highlighted';
 $string['tablabelparent'] = 'Parent tab';
+$string['tabsectionbackground'] = 'Section content background';
+$string['tabsectionbackground_help'] = 'Used to change the background of the section content. The value can be a color in a CSS valid representation, for example: <ul><li>Hexadecimal: #ffffff</li><li>RGB: rgb(0,255,0)</li><li>Name: green</li></ul>
+It can also be a URL attribute and other CSS background options.';
 $string['tabstylebuttons_help'] = 'Click on each button to configure the appearance of the tab in each of its possible states.';
 $string['tabstyleclear'] = 'Clear styles';
 $string['tabstyles'] = 'Tab styles';
 $string['tabstyles_help'] = 'Set the styles for the differents tab states.';
+$string['tabstylesdisplay'] = 'Show/hide tab style options';
+$string['tabstylesdisplay_help'] = 'The styles that are edited apply only to the tab in this section and to the child tabs when applicable. The entire bar is shown as an example of the different states that the tab can go through, but they will all be on the tab itself.';
+$string['tabstyleserrorjsoninvalid'] = 'Invalid JSON format';
 $string['tabstylesetactive'] = 'Set Active';
 $string['tabstylesetchildindex'] = 'Set Child index';
 $string['tabstylesetchilds'] = 'Set Childs';
@@ -165,8 +194,26 @@ $string['templetetopic_list'] = 'Yes, use the summary as template, list the reso
 $string['templetetopic_not'] = 'No, display as default';
 $string['templetetopic_single'] = 'Yes, use the summary as template';
 $string['usecourseindexsite'] = 'Use the default site value';
+$string['useoldstylescontrol'] = 'Use legacy styles control';
+$string['useoldstylescontrol_help'] = 'Use legacy style controls. This option is only available for compatibility with older versions of the plugin and will be removed in the future in favor of using only the new style editor.';
 $string['usescourseindex'] = 'Uses course index';
 $string['usescourseindex_help'] = 'Use the <em>course index</em> bar to navigate through the sections and resources';
 $string['usessectionsnavigation'] = 'Uses sections navigation';
 $string['usessectionsnavigation_help'] = 'Show buttons for navigate to next or previous section.';
+
+// Deprecated since Moodle 4.0.
+$string['disable'] = 'Disable';
+$string['disableajax'] = 'Asynchronous edit actions';
+$string['disableajax_help'] = 'Use this action in order to move resources between topic tabs. It only disables the asynchronous actions in current session, it is not permanently.';
+$string['enable'] = 'Enable';
 $string['utilities'] = 'Tabs edition utilities';
+
+// Deprecated since Moodle 4.3.
+$string['duplicate'] = 'Duplicate';
+$string['duplicate_confirm'] = 'Are you sure you want to duplicate the current topic? The task can take a while depending on the amount of resources.';
+$string['duplicatesection'] = 'Duplicate current topic';
+$string['duplicatesection_help'] = 'Used to duplicate the resources of current topic in a new topic';
+$string['duplicating'] = 'Duplicating';
+$string['progress_counter'] = 'Duplicating activities ({$a->current}/{$a->size})';
+$string['progress_full'] = 'Duplicating topic';
+$string['rebuild_course_cache'] = 'Rebuild course cache';

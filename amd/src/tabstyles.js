@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/*
- * @package   format_onetopic
- * @copyright 2023 David Herney Bernal - cirano
+/**
+ * Tab editor in site settings.
+ *
+ * @module    format_onetopic/tabstyles
+ * @copyright 2021 David Herney Bernal - cirano
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 import $ from 'jquery';
@@ -37,6 +39,58 @@ export const init = () => {
     $tabstyles = $('#onetopic-tabstyles');
     $inputtosave = $tabstyles.find('textarea.savecontrol');
     $styleswindow = $('#onetopic-styleswindow');
+
+    // Define the tab icons.
+    $('#onetopic-tabstyles .tpl-tabdefault .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-default hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabactive .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-active hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabparent .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-parent hidden"></span>');
+        $tabicon.append('<span class="tabicon-default hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabchildindex .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-childs hidden"></span>');
+        $tabicon.append('<span class="tabicon-childindex hidden"></span>');
+        $tabicon.append('<span class="tabicon-default hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabchild .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-childs hidden"></span>');
+        $tabicon.append('<span class="tabicon-default hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabhighlighted .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-highlighted hidden"></span>');
+        $tabicon.append('<span class="tabicon-default hidden"></span>');
+        $tabicon.append('<span class="tabicon-hover hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tpl-tabdisabled .tabicon').each(function() {
+        var $tabicon = $(this);
+        $tabicon.append('<span class="tabicon-disabled hidden"></span>');
+    });
+
+    $('#onetopic-tabstyles .tabicon').each(function() {
+        $(this).removeClass('hidden');
+    });
+    // End of Define the tab icons.
 
     if ($inputtosave.val().trim() !== '') {
 
@@ -135,7 +189,55 @@ export const init = () => {
         e.preventDefault();
         globalstyles = {};
         $inputtosave.val('');
+        $('#onetopic-tabstyles .tabicon span').html('').addClass('hidden');
         applyStyles();
+    });
+
+    $('#tabstylesdisplay').on('click', function(e) {
+        e.preventDefault();
+        $tabstyles.toggleClass('hidden');
+    });
+
+    $('#onetopic-styleswindow .onetopic-selecticon').each(function() {
+        var $selecticon = $(this);
+
+        $selecticon.find('button.iconselect').on('click', function(e) {
+            e.preventDefault();
+            $selecticon.find('.listicons').removeClass('hidden');
+        });
+
+        $selecticon.find('button.iconremove').on('click', function(e) {
+            e.preventDefault();
+            $selecticon.find('.iconselected').html('');
+            $selecticon.find('[data-style="tabicon"]').val('');
+        });
+
+        $selecticon.find('.listicons .windowheader').on('click', function() {
+            $selecticon.find('.listicons').addClass('hidden');
+        });
+
+        $selecticon.find('.listicons span').on('click', function(e) {
+            e.preventDefault();
+            var $icon = $(this);
+            $selecticon.find('.iconselected').html($icon.html());
+            $selecticon.find('[data-style="tabicon"]').val($icon.data('value'));
+            $selecticon.find('.listicons').addClass('hidden');
+        });
+
+        $selecticon.find('[data-style="tabicon"]').on('change', function() {
+            var $node = $(this);
+
+            if ($node.val() === '') {
+                $selecticon.find('.iconselected').html('');
+                return;
+            }
+
+            var $icon = $selecticon.find('.listicons span[data-value="' + $node.val() + '"]');
+
+            if ($icon.length > 0) {
+                $selecticon.find('.iconselected').html($icon.html());
+            }
+        });
     });
 
 };
@@ -151,7 +253,7 @@ var showStylesWindow = function(type) {
     $styleswindow.find('[data-style]').each(function() {
         var $node = $(this);
 
-        if ($node.is('input[type="text"]')) {
+        if ($node.is('input[type="text"]') || $node.is('input[type="hidden"]')) {
             $node.val('');
             $node.trigger('change');
         } else if ($node.is('select')) {
@@ -167,6 +269,9 @@ var showStylesWindow = function(type) {
 
             // Apply the color.
             $styleswindow.find('[data-control="colorpicker"]').trigger('change');
+
+            // Change the icon.
+            $styleswindow.find('[data-style="tabicon"]').trigger('change');
         });
     }
 
@@ -186,47 +291,48 @@ var applyStyles = function() {
 
         switch (type) {
             case 'active':
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item a.nav-link.active, ';
-                csscontent += '.format-onetopic .nav-tabs a.nav-link.active, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs a.nav-link.active, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link.active';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item a.nav-link.active, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs a.nav-link.active, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs a.nav-link.active, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link.active';
             break;
             case 'parent':
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item.haschilds a.nav-link, ';
-                csscontent += '.format-onetopic .nav-tabs .nav-item.haschilds a.nav-link';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item.haschilds a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs .nav-item.haschilds a.nav-link';
             break;
             case 'highlighted':
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item.marker a.nav-link, ';
-                csscontent += '.format-onetopic .nav-tabs .nav-item.marker a.nav-link, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.marker a.nav-link, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic.marker a.nav-link';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item.marker a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs .nav-item.marker a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.marker a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic.marker a.nav-link';
             break;
             case 'disabled':
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item.disabled a.nav-link, ';
-                csscontent += '.format-onetopic .nav-tabs .nav-item.disabled a.nav-link, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.disabled a.nav-link, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic.disabled a.nav-link';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item.disabled a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs .nav-item.disabled a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.disabled a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic.disabled a.nav-link';
             break;
             case 'hover':
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item a.nav-link:hover, ';
-                csscontent += '.format-onetopic .nav-tabs .nav-item a.nav-link:hover, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item a.nav-link:hover, ';
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link:hover';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item a.nav-link:hover, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs .nav-item a.nav-link:hover, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item a.nav-link:hover, ';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link:hover';
             break;
             case 'childs':
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic a.nav-link';
             break;
             case 'childindex':
-                csscontent += '.format-onetopic .onetopic-tab-body .nav-tabs .nav-item.subtopic.tab_initial a.nav-link';
+                csscontent += '#onetopic-tabstyles .onetopic-tab-body .nav-tabs .nav-item.subtopic.tab_initial a.nav-link';
             break;
             default:
-                csscontent += '.format-onetopic .verticaltabs .format_onetopic-tabs .nav-item a.nav-link, ';
-                csscontent += '.format-onetopic .nav-tabs a.nav-link';
+                csscontent += '#onetopic-tabstyles .verticaltabs .format_onetopic-tabs .nav-item a.nav-link, ';
+                csscontent += '#onetopic-tabstyles .nav-tabs a.nav-link';
         }
 
         csscontent += '{';
         var units = [];
         var stylesarray = Object.entries(styles);
+        var hasicon = false;
 
         // Check if exist units for some rules.
         stylesarray.forEach(([key, value]) => {
@@ -236,13 +342,25 @@ var applyStyles = function() {
                 // Remove the prefix.
                 key = key.replace('unit-', '');
                 units[key] = value;
+            } else if (key == 'tabicon') {
+                if (value !== '') {
+                    var icon = $('#onetopic-styleswindow .listicons span[data-value="' + value + '"]').html();
+                    $('#onetopic-tabstyles .tabicon-' + type).html(icon).removeClass('hidden');
+                    hasicon = true;
+                }
             }
         });
 
+        if (!hasicon) {
+            $('#onetopic-tabstyles .tabicon-' + type).html('').addClass('hidden');
+        }
+
         stylesarray.forEach(([key, value]) => {
 
-            // Exclude the units rules.
+            // Exclude the tab icons and units rules.
             if (key.indexOf('unit-') === 0) {
+                return;
+            } else if (key == 'tabicon') {
                 return;
             }
 

@@ -38,6 +38,15 @@ use core\output\inplace_editable;
  */
 class format_onetopic extends core_courseformat\base {
 
+    /** @var int Hidden sections are shown collapsed */
+    const HIDDENSENTIONS_COLLAPSED = 0;
+
+    /** @var int Hidden sections are invisible */
+    const HIDDENSENTIONS_INVISIBLE = 1;
+
+    /** @var int Hidden sections has the help information in a icon */
+    const HIDDENSENTIONS_HELP = 2;
+
     /** @var int The summary is not a template */
     const TEMPLATETOPIC_NOT = 0;
 
@@ -110,11 +119,10 @@ class format_onetopic extends core_courseformat\base {
     /**
      * Creates a new instance of class
      *
-     * Please use {@see course_get_format($courseorid)} to get an instance of the format class
+     * Please use course_get_format($courseorid) to get an instance of the format class
      *
      * @param string $format
      * @param int $courseid
-     * @return format_base
      */
     protected function __construct($format, $courseid) {
         parent::__construct($format, $courseid);
@@ -161,6 +169,37 @@ class format_onetopic extends core_courseformat\base {
             }
         }
 
+        $course = $this->get_course();
+
+        if (!isset($section) && ($PAGE->pagetype == 'course-view-onetopic' || $PAGE->pagetype == 'course-view')) {
+
+            if ($sectionid <= 0) {
+                $section = optional_param('section', -1, PARAM_INT);
+            }
+
+            if ($section < 0) {
+                $sectionname = optional_param('sectionname', '', PARAM_TEXT);
+                $sectionbyname = null;
+
+                if (!empty($sectionname)) {
+                    $conditions = ['course' => $courseid, 'name' => $sectionname];
+                    $sectionbyname = $DB->get_field('course_sections', 'section', $conditions, IGNORE_MULTIPLE);
+                }
+
+                if (!empty($sectionbyname)) {
+                    $section = $sectionbyname;
+                } else {
+                    if (isset($USER->display[$course->id])) {
+                        $section = $USER->display[$course->id];
+                    } else if ($course->marker && $course->marker > 0) {
+                        $section = (int)$course->marker;
+                    } else {
+                        $section = 0;
+                    }
+                }
+            }
+        }
+
         if ($this->printable) {
             if (!self::$loaded && isset($section) && $courseid &&
                     ($PAGE->pagetype == 'course-view-onetopic' || $PAGE->pagetype == 'course-view')) {
@@ -172,26 +211,11 @@ class format_onetopic extends core_courseformat\base {
 
                 // Onetopic format is always multipage.
                 $course->realcoursedisplay = property_exists($course, 'coursedisplay') ? $course->coursedisplay : false;
-
-                if ($sectionid <= 0) {
-                    $section = optional_param('section', -1, PARAM_INT);
-                }
-
                 $numsections = (int)$DB->get_field('course_sections', 'MAX(section)', ['course' => $courseid], MUST_EXIST);
 
                 if ($section >= 0 && $numsections >= $section) {
                     $realsection = $section;
                 } else {
-                    if (isset($USER->display[$course->id]) && $numsections >= $USER->display[$course->id]) {
-                        $realsection = $USER->display[$course->id];
-                    } else if ($course->marker && $course->marker > 0) {
-                        $realsection = (int)$course->marker;
-                    } else {
-                        $realsection = 0;
-                    }
-                }
-
-                if ($realsection < 0 || $realsection > $numsections) {
                     $realsection = 0;
                 }
 
@@ -366,7 +390,7 @@ class format_onetopic extends core_courseformat\base {
      * @return null|moodle_url
      */
     public function get_view_url($section, $options = []) {
-        global $CFG;
+
         $course = $this->get_course();
         $url = new moodle_url('/course/view.php', ['id' => $course->id]);
 
@@ -382,13 +406,8 @@ class format_onetopic extends core_courseformat\base {
         if ($sectionno !== null) {
             if ($sr !== null) {
                 if ($sr) {
-                    $usercoursedisplay = COURSE_DISPLAY_MULTIPAGE;
                     $sectionno = $sr;
-                } else {
-                    $usercoursedisplay = COURSE_DISPLAY_SINGLEPAGE;
                 }
-            } else {
-                $usercoursedisplay = $course->coursedisplay;
             }
             $url->param('section', $sectionno);
         }
@@ -526,10 +545,10 @@ class format_onetopic extends core_courseformat\base {
     public function course_format_options($foreditform = false) {
         static $courseformatoptions = false;
         if ($courseformatoptions === false) {
-            $courseconfig = get_config('moodlecourse');
+            $courseconfig = get_config('format_onetopic');
             $courseformatoptions = [
                 'hiddensections' => [
-                    'default' => $courseconfig->hiddensections,
+                    'default' => $courseconfig->defaulthiddensections,
                     'type' => PARAM_INT,
                 ],
                 'hidetabsbar' => [
@@ -537,7 +556,7 @@ class format_onetopic extends core_courseformat\base {
                     'type' => PARAM_INT,
                 ],
                 'coursedisplay' => [
-                    'default' => $courseconfig->coursedisplay,
+                    'default' => $courseconfig->defaultcoursedisplay,
                     'type' => PARAM_INT,
                 ],
                 'templatetopic' => [
@@ -549,11 +568,11 @@ class format_onetopic extends core_courseformat\base {
                     'type' => PARAM_INT,
                 ],
                 'tabsview' => [
-                    'default' => 0,
+                    'default' => $courseconfig->defaulttabsview,
                     'type' => PARAM_INT,
                 ],
                 'usessectionsnavigation' => [
-                    'default' => 0,
+                    'default' => 0, // The 0 value is the site level.
                     'type' => PARAM_INT,
                 ],
                 'usescourseindex' => [
@@ -572,9 +591,9 @@ class format_onetopic extends core_courseformat\base {
                     'element_type' => 'select',
                     'element_attributes' => [
                         [
-                            0 => new lang_string('hiddensectionscollapsed'),
-                            1 => new lang_string('hiddensectionsinvisible'),
-                            2 => new lang_string('hiddensectionshelp', 'format_onetopic'),
+                            self::HIDDENSENTIONS_COLLAPSED => new lang_string('hiddensectionscollapsed'),
+                            self::HIDDENSENTIONS_INVISIBLE => new lang_string('hiddensectionsinvisible'),
+                            self::HIDDENSENTIONS_HELP => new lang_string('hiddensectionshelp', 'format_onetopic'),
                         ],
                     ],
                 ],
@@ -635,7 +654,6 @@ class format_onetopic extends core_courseformat\base {
                             self::TABSVIEW_DEFAULT => new lang_string('tabsview_default', 'format_onetopic'),
                             self::TABSVIEW_VERTICAL => new lang_string('tabsview_vertical', 'format_onetopic'),
                             self::TABSVIEW_ONELINE => new lang_string('tabsview_oneline', 'format_onetopic'),
-                            self::TABSVIEW_COURSEINDEX => new lang_string('tabsview_courseindex', 'format_onetopic'),
                         ],
                     ],
                     'help' => 'tabsview',
@@ -673,6 +691,7 @@ class format_onetopic extends core_courseformat\base {
             ];
             $courseformatoptions = array_merge_recursive($courseformatoptions, $courseformatoptionsedit);
         }
+
         return $courseformatoptions;
     }
 
@@ -686,7 +705,7 @@ class format_onetopic extends core_courseformat\base {
      * @return array array of references to the added form elements.
      */
     public function create_edit_form_elements(&$mform, $forsection = false) {
-        global $COURSE;
+        global $COURSE, $CFG;
         $elements = parent::create_edit_form_elements($mform, $forsection);
 
         if (!$forsection && (empty($COURSE->id) || $COURSE->id == SITEID)) {
@@ -704,6 +723,32 @@ class format_onetopic extends core_courseformat\base {
             array_unshift($elements, $element);
         }
 
+        if ($forsection) {
+            $onetopicconfig = get_config('format_onetopic');
+
+            if ($onetopicconfig->enablecustomstyles) {
+
+                $mform->removeElement('tabsectionbackground');
+                MoodleQuickForm::registerElementType('tabsectionbackground',
+                                            $CFG->dirroot . '/course/format/onetopic/classes/local/formelement_background.php',
+                                            'format_onetopic_background_form_element');
+                $element = $mform->addElement('tabsectionbackground', 'tabsectionbackground',
+                                                get_string('tabsectionbackground', 'format_onetopic'));
+
+                $elements[] = $element;
+
+                if (empty($onetopicconfig->useoldstylescontrol)) {
+                    $mform->removeElement('tabstyles');
+                    MoodleQuickForm::registerElementType('tabstyles',
+                                                $CFG->dirroot . '/course/format/onetopic/classes/local/formelement_tabstyles.php',
+                                                'format_onetopic_tabstyles_form_element');
+                    $element = $mform->addElement('tabstyles', 'tabstyles', get_string('tabstyles', 'format_onetopic'));
+
+                    $elements[] = $element;
+                }
+            }
+        }
+
         return $elements;
     }
 
@@ -719,11 +764,12 @@ class format_onetopic extends core_courseformat\base {
      * @return bool whether there were any changes to the options values
      */
     public function update_course_format_options($data, $oldcourse = null) {
-        global $DB;
+
         $data = (array)$data;
         if ($oldcourse !== null) {
             $oldcourse = (array)$oldcourse;
             $options = $this->course_format_options();
+            $defaultconfig = get_config('format_onetopic');
 
             foreach ($options as $key => $unused) {
                 if (!array_key_exists($key, $data)) {
@@ -738,11 +784,11 @@ class format_onetopic extends core_courseformat\base {
                     } else if ($key === 'templatetopic_icons') {
                         $data['templatetopic_icons'] = 0;
                     } else if ($key === 'tabsview') {
-                        $data['tabsview'] = self::TABSVIEW_DEFAULT;
+                        $data['tabsview'] = $defaultconfig->defaulttabsview;
                     } else if ($key === 'usessectionsnavigation') {
-                        $data['usessectionsnavigation'] = 0;
+                        $data['usessectionsnavigation'] = $defaultconfig->defaultsectionsnavigation;
                     } else if ($key === 'usescourseindex') {
-                        $data['usescourseindex'] = 2;
+                        $data['usescourseindex'] = $defaultconfig->courseindex;
                     }
                 }
             }
@@ -751,14 +797,14 @@ class format_onetopic extends core_courseformat\base {
     }
 
     /**
-     * Definitions of the additional options that this course format uses for section.
+     * Definitions of the additional options that this course format uses for section
      *
-     * See {@see format_base::course_format_options()} for return array definition.
+     * See course_format::course_format_options() for return array definition.
      *
      * Additionally section format options may have property 'cache' set to true
-     * if this option needs to be cached in {@see get_fast_modinfo()}. The 'cache' property
-     * is recommended to be set only for fields used in {@see format_base::get_section_name()},
-     * {@see format_base::extend_course_navigation()} and {@see format_base::get_view_url()}
+     * if this option needs to be cached in get_fast_modinfo(). The 'cache' property
+     * is recommended to be set only for fields used in course_format::get_section_name(),
+     * course_format::extend_course_navigation() and course_format::get_view_url()
      *
      * For better performance cached options are recommended to have 'cachedefault' property
      * Unlike 'default', 'cachedefault' should be static and not access get_config().
@@ -778,7 +824,7 @@ class format_onetopic extends core_courseformat\base {
     public function section_format_options($foreditform = false) {
         static $sectionformatoptions = false;
 
-        $enablecustomstyles = get_config('format_onetopic', 'enablecustomstyles');
+        $onetopicconfig = get_config('format_onetopic');
 
         if ($sectionformatoptions === false) {
             $sectionformatoptions = [
@@ -787,26 +833,38 @@ class format_onetopic extends core_courseformat\base {
                     'type' => PARAM_INT,
                 ],
                 'firsttabtext' => [
-                    'default' => get_string('index', 'format_onetopic'),
+                    'default' => (string)(new lang_string('index', 'format_onetopic')),
                     'type' => PARAM_TEXT,
                 ],
             ];
 
-            if ($enablecustomstyles) {
-                $sectionformatoptions['fontcolor'] = [
+            if ($onetopicconfig->enablecustomstyles) {
+                $sectionformatoptions['tabsectionbackground'] = [
                     'default' => '',
                     'type' => PARAM_RAW,
                 ];
 
-                $sectionformatoptions['bgcolor'] = [
-                    'default' => '',
-                    'type' => PARAM_RAW,
-                ];
+                if ($onetopicconfig->useoldstylescontrol) {
+                    $sectionformatoptions['fontcolor'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                    ];
 
-                $sectionformatoptions['cssstyles'] = [
-                    'default' => '',
-                    'type' => PARAM_RAW,
-                ];
+                    $sectionformatoptions['bgcolor'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                    ];
+
+                    $sectionformatoptions['cssstyles'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                    ];
+                } else {
+                    $sectionformatoptions['tabstyles'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                    ];
+                }
             }
         }
 
@@ -815,57 +873,78 @@ class format_onetopic extends core_courseformat\base {
                 'level' => [
                     'default' => 0,
                     'type' => PARAM_INT,
-                    'label' => get_string('level', 'format_onetopic'),
+                    'label' => new lang_string('level', 'format_onetopic'),
                     'element_type' => 'select',
                     'element_attributes' => [
                         [
-                            0 => get_string('asprincipal', 'format_onetopic'),
-                            1 => get_string('aschild', 'format_onetopic'),
+                            0 => new lang_string('asprincipal', 'format_onetopic'),
+                            1 => new lang_string('aschild', 'format_onetopic'),
                         ],
                         ],
                     'help' => 'level',
                     'help_component' => 'format_onetopic',
                 ],
                 'firsttabtext' => [
-                    'default' => get_string('index', 'format_onetopic'),
+                    'default' => (string)(new lang_string('index', 'format_onetopic')),
                     'type' => PARAM_TEXT,
-                    'label' => get_string('firsttabtext', 'format_onetopic'),
+                    'label' => new lang_string('firsttabtext', 'format_onetopic'),
                     'help' => 'firsttabtext',
                     'help_component' => 'format_onetopic',
                 ],
             ];
 
-            if ($enablecustomstyles) {
-                $sectionformatoptionsedit['fontcolor'] = [
+            if ($onetopicconfig->enablecustomstyles) {
+
+                $sectionformatoptionsedit['tabsectionbackground'] = [
                     'default' => '',
                     'type' => PARAM_RAW,
-                    'label' => get_string('fontcolor', 'format_onetopic'),
-                    'help' => 'fontcolor',
+                    'label' => new lang_string('tabsectionbackground', 'format_onetopic'),
+                    'element_type' => 'text',
+                    'help' => 'tabsectionbackground',
                     'help_component' => 'format_onetopic',
                 ];
 
-                $sectionformatoptionsedit['bgcolor'] = [
-                    'default' => '',
-                    'type' => PARAM_RAW,
-                    'label' => get_string('bgcolor', 'format_onetopic'),
-                    'help' => 'bgcolor',
-                    'help_component' => 'format_onetopic',
-                ];
+                if ($onetopicconfig->useoldstylescontrol) {
+                    $sectionformatoptionsedit['fontcolor'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                        'label' => new lang_string('fontcolor', 'format_onetopic'),
+                        'help' => 'fontcolor',
+                        'help_component' => 'format_onetopic',
+                    ];
 
-                $sectionformatoptionsedit['cssstyles'] = [
-                    'default' => '',
-                    'type' => PARAM_RAW,
-                    'label' => get_string('cssstyles', 'format_onetopic'),
-                    'help' => 'cssstyles',
-                    'help_component' => 'format_onetopic',
-                ];
+                    $sectionformatoptionsedit['bgcolor'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                        'label' => new lang_string('bgcolor', 'format_onetopic'),
+                        'help' => 'bgcolor',
+                        'help_component' => 'format_onetopic',
+                    ];
+
+                    $sectionformatoptionsedit['cssstyles'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                        'label' => new lang_string('cssstyles', 'format_onetopic'),
+                        'help' => 'cssstyles',
+                        'help_component' => 'format_onetopic',
+                    ];
+                } else {
+                    $sectionformatoptionsedit['tabstyles'] = [
+                        'default' => '',
+                        'type' => PARAM_RAW,
+                        'label' => new lang_string('cssstyles', 'format_onetopic'),
+                        'element_type' => 'textarea',
+                        'help' => 'tabstyles',
+                        'help_component' => 'format_onetopic',
+                    ];
+                }
+
             }
 
             $sectionformatoptions = $sectionformatoptionsedit;
         }
         return $sectionformatoptions;
     }
-
 
     /**
      * Whether this format allows to delete sections.
@@ -1079,7 +1158,6 @@ class format_onetopic extends core_courseformat\base {
      * @return bool true if edit controls must be displayed
      */
     public function show_editor(?array $capabilities = ['moodle/course:manageactivities']): bool {
-        global $PAGE;
 
         if ($this->currentscope != self::SCOPE_COURSE) {
             return false;
@@ -1088,6 +1166,22 @@ class format_onetopic extends core_courseformat\base {
         return parent::show_editor($capabilities);
     }
 
+    /**
+     * Get the course display value for the current course.
+     *
+     * Formats extending topics or weeks will use coursedisplay as this setting name
+     * so they don't need to override the method. However, if the format uses a different
+     * display logic it must override this method to ensure the core renderers know
+     * if a COURSE_DISPLAY_MULTIPAGE or COURSE_DISPLAY_SINGLEPAGE is being used.
+     *
+     * @return int The current value (COURSE_DISPLAY_MULTIPAGE or COURSE_DISPLAY_SINGLEPAGE)
+     */
+    public function get_course_display(): int {
+        global $destsection, $move;
+
+        // The display is SINGLEPAGE when we move a section, in other case we use the MULTIPAGE.
+        return $destsection && $move ? COURSE_DISPLAY_SINGLEPAGE : COURSE_DISPLAY_MULTIPAGE;
+    }
 }
 
 /**
@@ -1096,9 +1190,9 @@ class format_onetopic extends core_courseformat\base {
  * @param string $itemtype
  * @param int $itemid
  * @param mixed $newvalue
- * @return \core\output\inplace_editable
+ * @return ?\core\output\inplace_editable
  */
-function format_onetopics_inplace_editable($itemtype, $itemid, $newvalue) {
+function format_onetopic_inplace_editable($itemtype, $itemid, $newvalue) {
     global $DB, $CFG;
     require_once($CFG->dirroot . '/course/lib.php');
     if ($itemtype === 'sectionname' || $itemtype === 'sectionnamenl') {
